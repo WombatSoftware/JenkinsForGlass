@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Jenkins for Glass</string>
+	<string name="check_jenkins">check jenkins</string>
+    <string name="refresh">Refresh</string>
+</resources>
