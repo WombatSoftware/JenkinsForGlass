@@ -34,9 +34,16 @@ public class MenuActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection.
         switch (item.getItemId()) {
-            case R.id.refresh:
+        	case R.id.refresh:
+        		return true;
+
+        	case R.id.settings:
+        		return true;
+
+            case R.id.stop:
                 stopService(new Intent(this, JenkinsService.class));
                 return true;
+
             default:
                 return super.onOptionsItemSelected(item);
         }

@@ -14,16 +14,7 @@
      limitations under the License.
 -->
 
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/refresh"
-        android:title="@string/refresh"
-        android:icon="@drawable/ic_sync" />
-
-    <item android:id="@+id/settings"
-        android:title="@string/settings"
-        android:icon="@drawable/ic_gear" />
-
-    <item android:id="@+id/stop"
-        android:title="@string/stop"
-        android:icon="@drawable/ic_stop" />
-</menu>
+<resources>
+    <color name="black">#ff000000</color>
+    <color name="blue">#82CFFD</color>
+</resources>
