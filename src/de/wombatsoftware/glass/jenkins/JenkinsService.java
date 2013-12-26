@@ -1,21 +1,9 @@
 package de.wombatsoftware.glass.jenkins;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
@@ -24,10 +12,8 @@ import android.widget.RemoteViews;
 import com.google.android.glass.timeline.LiveCard;
 import com.google.android.glass.timeline.TimelineManager;
 import com.google.android.glass.timeline.LiveCard.PublishMode;
-import com.google.gson.Gson;
 
-import de.wombatsoftware.glass.jenkins.model.JenkinsResponse;
-import de.wombatsoftware.glass.jenkins.model.Job;
+import de.wombatsoftware.glass.jenkins.model.Jenkins;
 import de.wombatsoftware.glass.jenkins.model.StatusSummary;
 
 /**
@@ -40,17 +26,35 @@ public class JenkinsService extends Service {
 
 	private TimelineManager mTimelineManager;
 	private LiveCard mLiveCard;
+	private Jenkins jenkins;
+	private final JenkinsBinder mBinder = new JenkinsBinder();
+	
+	private RemoteViews remoteViews;
 
 	@Override
 	public void onCreate() {
 		super.onCreate();
+
 		mTimelineManager = TimelineManager.from(this);
 	}
 
+	public class JenkinsBinder extends Binder {
+        public Jenkins getJenkins() {
+        	return jenkins;
+        }
+
+        public void republish() {
+        	mLiveCard.unpublish();
+        	initRemoteViews();
+        	mLiveCard.setViews(remoteViews);
+			mLiveCard.publish(PublishMode.REVEAL);
+        }
+    }
+
 	@Override
-	public IBinder onBind(Intent intent) {
-		return null;
-	}
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
@@ -62,17 +66,15 @@ public class JenkinsService extends Service {
 
 			mLiveCard = mTimelineManager.createLiveCard(LIVE_CARD_ID);
 
-			RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
-
-			StatusSummary summary = parseJenkinsFeed(readJenkinsFeed());
-
-			remoteViews.setTextViewText(R.id.success, formatStatusMessage(summary.getStableJobs(), summary.getTotalJobs(), "Stable"));
-			remoteViews.setTextViewText(R.id.unstable, formatStatusMessage(summary.getUnstableJobs(), summary.getTotalJobs(), "Unstable"));
-			remoteViews.setTextViewText(R.id.failed, formatStatusMessage(summary.getFailedJobs(), summary.getTotalJobs(), "Failed"));
+			remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
+			
+			// TODO: Externalize the url
+			jenkins = Jenkins.createJenkins("http://ci.wombatsoftware.de/api/json");
+			
+			initRemoteViews();
 
 			Intent menuIntent = new Intent(this, MenuActivity.class);
-			mLiveCard.setAction(PendingIntent.getActivity(this, 0, menuIntent,
-					0));
+			mLiveCard.setAction(PendingIntent.getActivity(this, 0, menuIntent, 0));
 			mLiveCard.setViews(remoteViews);
 			mLiveCard.publish(PublishMode.REVEAL);
 
@@ -83,66 +85,17 @@ public class JenkinsService extends Service {
 
 		return START_STICKY;
 	}
+	
+	private void initRemoteViews() {
+		StatusSummary summary = jenkins.getSummary();
+
+		remoteViews.setTextViewText(R.id.success, formatStatusMessage(summary.getStableJobs(), summary.getTotalJobs(), "Stable"));
+		remoteViews.setTextViewText(R.id.unstable, formatStatusMessage(summary.getUnstableJobs(), summary.getTotalJobs(), "Unstable"));
+		remoteViews.setTextViewText(R.id.failed, formatStatusMessage(summary.getFailedJobs(), summary.getTotalJobs(), "Failed"));
+	}
 
 	private String formatStatusMessage(int amount, int totalJobs, String name) {
 		return " " + amount + "/" + totalJobs + " " + name;
-	}
-
-	private String readJenkinsFeed() {
-		StringBuilder builder = new StringBuilder();
-
-		HttpClient client = new DefaultHttpClient();
-		HttpGet httpGet = new HttpGet("http://ci.wombatsoftware.de/api/json");
-
-		try {
-			HttpResponse response = client.execute(httpGet);
-			StatusLine statusLine = response.getStatusLine();
-			int statusCode = statusLine.getStatusCode();
-
-			if (statusCode == 200) {
-				HttpEntity entity = response.getEntity();
-				InputStream content = entity.getContent();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(content));
-				String line;
-
-				while ((line = reader.readLine()) != null) {
-					builder.append(line);
-				}
-			} else {
-				Log.e(JenkinsService.class.toString(), "Failed to download file");
-			}
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return builder.toString();
-	}
-
-	private StatusSummary parseJenkinsFeed(String json) {
-		Gson gson = new Gson();
-		JenkinsResponse jenkinsResponse = gson.fromJson(json, JenkinsResponse.class);
-
-		StatusSummary summary = new StatusSummary();
-
-		for (Job j : jenkinsResponse.getJobs()) {
-			switch (j.getColor()) {
-				case blue:
-					summary.addStableJob();
-					break;
-	
-				case yellow:
-					summary.addUnstableJob();
-					break;
-	
-				case red:
-					summary.addFailedJob();
-					break;
-			}
-		}
-
-		return summary;
 	}
 
 	@Override
@@ -155,5 +108,9 @@ public class JenkinsService extends Service {
 		}
 
 		super.onDestroy();
+	}
+	
+	protected void setJenkins(Jenkins jenkins) {
+		this.jenkins = jenkins;
 	}
 }
