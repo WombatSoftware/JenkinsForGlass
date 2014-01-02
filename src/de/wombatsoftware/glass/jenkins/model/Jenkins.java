@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.util.List;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -19,10 +21,13 @@ import com.google.gson.Gson;
 
 import de.wombatsoftware.glass.jenkins.JenkinsService;
 
-public class Jenkins {
+public class Jenkins implements Serializable {
+	private static final long serialVersionUID = -4032951634201406937L;
+
 	private static final String TAG = "Jenkins";
 
 	private StatusSummary summary;
+	private List<Job> jobs;
 	private final String url;
 	
 	public Jenkins(String url) {
@@ -44,13 +49,18 @@ public class Jenkins {
 		summary = parseJenkinsFeed(readJenkinsFeed());
 	}
 
+	public List<Job> getJobs() {
+		return jobs;
+	}
+
 	private StatusSummary parseJenkinsFeed(String json) {
 		Gson gson = new Gson();
 		JenkinsResponse jenkinsResponse = gson.fromJson(json, JenkinsResponse.class);
 
 		StatusSummary summary = new StatusSummary();
+		jobs = jenkinsResponse.getJobs();
 
-		for (Job j : jenkinsResponse.getJobs()) {
+		for (Job j : jobs) {
 			switch (j.getColor()) {
 				case blue:
 					summary.addStableJob();

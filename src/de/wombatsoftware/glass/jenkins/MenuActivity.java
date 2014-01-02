@@ -17,6 +17,7 @@ import de.wombatsoftware.glass.jenkins.model.Jenkins;
 public class MenuActivity extends Activity {
 	private Jenkins jenkins;
 	private JenkinsService.JenkinsBinder jenkinsBinder;
+	private static final int VIEW_DETAILS = 100;
 	
 	private ServiceConnection mConnection = new ServiceConnection() { 
         @Override
@@ -61,6 +62,10 @@ public class MenuActivity extends Activity {
         	case R.id.refresh:
         		refreshJenkins();
         		return true;
+        		
+        	case R.id.details:
+        		showJobDetails();
+        		return true;
 
         	case R.id.settings:
         		return true;
@@ -91,4 +96,10 @@ public class MenuActivity extends Activity {
 		// TODO: Must it get unbound? 
 		// unbindService(mConnection);
 	}
+
+	private void showJobDetails() {
+        Intent viewJobDetailsIntent = new Intent(this, ViewJobDetailsActivity.class);
+        viewJobDetailsIntent.putExtra(ViewJobDetailsActivity.EXTRA_JENKINS, jenkins);
+        startActivityForResult(viewJobDetailsIntent, VIEW_DETAILS);
+    }
 }

@@ -16,5 +16,8 @@
 
 <resources>
     <color name="black">#ff000000</color>
-    <color name="blue">#82CFFD</color>
+    <color name="white">#00000000</color>
+    <color name="blue">#00B2EE</color>
+    <color name="yellow">#FFCC11</color>
+    <color name="red">#EE3B3B</color>
 </resources>

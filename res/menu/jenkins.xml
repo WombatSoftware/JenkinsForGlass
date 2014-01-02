@@ -18,6 +18,10 @@
     <item android:id="@+id/refresh"
         android:title="@string/refresh"
         android:icon="@drawable/ic_sync" />
+    
+    <item android:id="@+id/details"
+        android:title="@string/details"
+        android:icon="@drawable/ic_gear" />
 
     <item android:id="@+id/settings"
         android:title="@string/settings"

@@ -1,6 +1,10 @@
 package de.wombatsoftware.glass.jenkins.model;
 
-public class Job {
+import java.io.Serializable;
+
+public class Job implements Serializable {
+	private static final long serialVersionUID = -8897635463581572109L;
+
 	public enum Color {
 		blue, yellow, red
 	};
