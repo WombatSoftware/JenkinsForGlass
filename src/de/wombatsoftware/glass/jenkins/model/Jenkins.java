@@ -73,6 +73,10 @@ public class Jenkins implements Serializable {
 				case red:
 					summary.addFailedJob();
 					break;
+
+				default:
+					summary.addTotalJob();
+					break;
 			}
 		}
 

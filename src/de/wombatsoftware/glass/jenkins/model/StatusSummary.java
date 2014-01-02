@@ -41,7 +41,7 @@ public class StatusSummary implements Serializable {
 		addTotalJob();
 	}
 	
-	private void addTotalJob() {
+	public void addTotalJob() {
 		totalJobs++;
 	}
 }
