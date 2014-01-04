@@ -6,8 +6,11 @@ import com.google.android.glass.widget.CardScrollView;
 import de.wombatsoftware.glass.jenkins.model.Jenkins;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.MotionEvent;
 
 /**
@@ -17,39 +20,61 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
 
     public static final String EXTRA_JENKINS = "jenkins";
 
-    private GestureDetector mDetector;
-    private CardScrollView mView;
+    private Jenkins jenkins;
+    private JenkinsService.JenkinsBinder jenkinsBinder;
     private ViewJobDetailsScrollAdapter mAdapter;
     
-    private Jenkins jenkins;
+    private ServiceConnection mConnection = new ServiceConnection() { 
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            if (service instanceof JenkinsService.JenkinsBinder) {
+            	jenkinsBinder = ((JenkinsService.JenkinsBinder) service); 
+            	jenkins = jenkinsBinder.getJenkins();
+            	
+            	mAdapter = new ViewJobDetailsScrollAdapter(ViewJobDetailsActivity.this, jenkins);
+
+                mView.setAdapter(mAdapter);
+                setContentView(mView);
+
+                mDetector = new GestureDetector(ViewJobDetailsActivity.this).setScrollListener(ViewJobDetailsActivity.this);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            // Nothing to do here.
+        }
+    };
+
+    private GestureDetector mDetector;
+    
+    private CardScrollView mView;
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getApplicationContext().bindService(new Intent(this, JenkinsService.class), mConnection, 0);
         
-        jenkins = (Jenkins) getIntent().getSerializableExtra(EXTRA_JENKINS);
-
-        mAdapter = new ViewJobDetailsScrollAdapter(this, jenkins);
-
-        mView = new CardScrollView(this) {
+        mView = new CardScrollView(ViewJobDetailsActivity.this) {
             @Override
             public final boolean dispatchGenericFocusedEvent(MotionEvent event) {
                 if (mDetector.onMotionEvent(event)) {
                     return true;
                 }
+
                 return super.dispatchGenericFocusedEvent(event);
             }
         };
-        mView.setAdapter(mAdapter);
-        setContentView(mView);
-        
-        mDetector = new GestureDetector(this).setScrollListener(this);
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        mView.activate();
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        return mDetector.onMotionEvent(event);
     }
 
     @Override
@@ -59,19 +84,9 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
     }
 
     @Override
-    public boolean onGenericMotionEvent(MotionEvent event) {
-        return mDetector.onMotionEvent(event);
-    }
-
-    @Override
-    public void onBackPressed() {
-        
-        super.onBackPressed();
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        
+    public void onResume() {
+        super.onResume();
+        mView.activate();
     }
 
 	@Override

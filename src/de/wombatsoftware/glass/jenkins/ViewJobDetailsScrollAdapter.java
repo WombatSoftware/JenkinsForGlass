@@ -3,7 +3,6 @@ package de.wombatsoftware.glass.jenkins;
 import java.util.List;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,15 +14,12 @@ import de.wombatsoftware.glass.jenkins.model.Jenkins;
 import de.wombatsoftware.glass.jenkins.model.Job;
 
 public class ViewJobDetailsScrollAdapter extends CardScrollAdapter {
-	private final Context mContext;
 	private Jenkins jenkins;
-	private static final String TAG = "ViewJobDetailsScrollAdapter";
+	private final Context mContext;
 	
 	public ViewJobDetailsScrollAdapter(Context context, Jenkins jenkins) {
         mContext = context;
         this.jenkins = jenkins;
-        Log.d(TAG, jenkins != null ? "YES" : "NO");
-        
     }
 
 	@Override

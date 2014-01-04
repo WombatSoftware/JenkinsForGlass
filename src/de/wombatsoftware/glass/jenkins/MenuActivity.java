@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
@@ -15,10 +16,10 @@ import de.wombatsoftware.glass.jenkins.model.Jenkins;
  * Activity showing the options menu.
  */
 public class MenuActivity extends Activity {
+	private static final int VIEW_DETAILS = 100;
 	private Jenkins jenkins;
 	private JenkinsService.JenkinsBinder jenkinsBinder;
-	private static final int VIEW_DETAILS = 100;
-	
+
 	private ServiceConnection mConnection = new ServiceConnection() { 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -35,16 +36,33 @@ public class MenuActivity extends Activity {
         }
     };
 
+	private boolean scanStarted = false;
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+
+		if (requestCode == 0) {
+			if (resultCode == RESULT_OK) {
+				String contents = data.getStringExtra("SCAN_RESULT");
+				//String format = data.getStringExtra("SCAN_RESULT_FORMAT");
+
+				SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
+				SharedPreferences.Editor editor = settings.edit();
+			    editor.putString("jenkinsUrl", contents);
+			    editor.commit();
+
+				jenkinsBinder.republish();
+			} else if (resultCode == RESULT_CANCELED) {
+				// Handle cancel
+			}
+		}
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getApplicationContext().bindService(new Intent(this, JenkinsService.class), mConnection, 0);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        openOptionsMenu();
     }
 
     @Override
@@ -62,12 +80,13 @@ public class MenuActivity extends Activity {
         	case R.id.refresh:
         		refreshJenkins();
         		return true;
-        		
+
         	case R.id.details:
         		showJobDetails();
         		return true;
 
         	case R.id.settings:
+        		setupJenkins();
         		return true;
 
             case R.id.stop:
@@ -82,20 +101,36 @@ public class MenuActivity extends Activity {
     @Override
     public void onOptionsMenuClosed(Menu menu) {
         // Nothing else to do, closing the Activity.
-        finish();
-    }
-    
-    private void refreshJenkins() {
-    	jenkins.init();
-    	jenkinsBinder.republish();
+
+    	if(!scanStarted) {
+    		finish();
+    	}
     }
 
-	@Override
+    @Override
+    public void onResume() {
+        super.onResume();
+        openOptionsMenu();
+    }
+
+    @Override
 	protected void onStop() {
 		super.onStop();
 		// TODO: Must it get unbound? 
 		// unbindService(mConnection);
 	}
+
+	private void refreshJenkins() {
+    	jenkins.init();
+    	jenkinsBinder.republish();
+    }
+
+	private void setupJenkins() {
+    	Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+        intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+        startActivityForResult(intent, 0);
+        scanStarted = true;
+    }
 
 	private void showJobDetails() {
         Intent viewJobDetailsIntent = new Intent(this, ViewJobDetailsActivity.class);

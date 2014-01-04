@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.wombatsoftware.glass.jenkins"
     android:versionCode="1"
@@ -9,37 +8,53 @@
         android:minSdkVersion="15"
         android:targetSdkVersion="15" />
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
         android:allowBackup="true"
-        android:label="@string/app_name">
-
+        android:label="@string/app_name" >
         <activity
             android:name="de.wombatsoftware.glass.jenkins.MenuActivity"
+            android:enabled="true"
             android:label="@string/app_name"
-            android:theme="@style/MenuTheme"
-            android:enabled="true" >
+            android:theme="@style/MenuTheme" >
         </activity>
-        
         <activity
             android:name="de.wombatsoftware.glass.jenkins.ViewJobDetailsActivity"
-            android:label="@string/app_name"
-            android:enabled="true" >
+            android:enabled="true"
+            android:label="@string/app_name" >
         </activity>
-        
+        <activity
+            android:name="com.google.zxing.client.android.CaptureActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:windowSoftInputMode="stateAlwaysHidden" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.zxing.client.android.SCAN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name="de.wombatsoftware.glass.jenkins.JenkinsService"
-            android:icon="@drawable/ic_jenkins_menu"
-            android:label="@string/app_name"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:icon="@drawable/ic_jenkins_menu"
+            android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="com.google.android.glass.action.VOICE_TRIGGER" />
             </intent-filter>
+
             <meta-data
                 android:name="com.google.android.glass.VoiceTrigger"
                 android:resource="@xml/voice_trigger_start" />
         </service>
     </application>
+
 </manifest>
