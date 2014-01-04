@@ -36,6 +36,7 @@ public class JenkinsService extends Service {
 
 	private static final String JENKINS_API_PATH = "/api/json";
 	private static final String LIVE_CARD_ID = "Jenkins";
+	public static final String PREFS_JENKINS_URL = "de.wombatsoftware.glass.jenkins.url";
 	public static final String PREFS_NAME = "JenkinsPreferences";
 
 	private static final String TAG = "JenkinsService";
@@ -70,18 +71,18 @@ public class JenkinsService extends Service {
 		mLiveCard.setViews(remoteViews);
 		mLiveCard.publish(PublishMode.REVEAL);
 	}
-	
+
 	private void initRemoteViews() {
 		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-	    String url = settings.getString("jenkinsUrl", null);
+	    String url = settings.getString(PREFS_JENKINS_URL, null);
 
 	    if(url == null) {
 	    	remoteViews = new RemoteViews(getPackageName(), R.layout.card_setup_needed);	
 	    } else {
 	    	initJenkins(url);
-			remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
-			StatusSummary summary = jenkins.getSummary();
+	    	StatusSummary summary = jenkins.getSummary();
 
+			remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
 			remoteViews.setTextViewText(R.id.success, formatStatusMessage(summary.getStableJobs(), summary.getTotalJobs(), "Stable"));
 			remoteViews.setTextViewText(R.id.unstable, formatStatusMessage(summary.getUnstableJobs(), summary.getTotalJobs(), "Unstable"));
 			remoteViews.setTextViewText(R.id.failed, formatStatusMessage(summary.getFailedJobs(), summary.getTotalJobs(), "Failed"));
@@ -133,7 +134,7 @@ public class JenkinsService extends Service {
 
 		return START_STICKY;
 	}
-	
+
 	protected void setJenkins(Jenkins jenkins) {
 		this.jenkins = jenkins;
 	}

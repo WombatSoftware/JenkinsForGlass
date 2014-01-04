@@ -49,7 +49,7 @@ public class MenuActivity extends Activity {
 
 				SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
 				SharedPreferences.Editor editor = settings.edit();
-			    editor.putString("jenkinsUrl", contents);
+			    editor.putString(JenkinsService.PREFS_JENKINS_URL, contents);
 			    editor.commit();
 
 				jenkinsBinder.republish();
@@ -97,8 +97,24 @@ public class MenuActivity extends Activity {
                 return super.onOptionsItemSelected(item);
         }
     }
-
+    
     @Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+    	SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
+	    String url = settings.getString(JenkinsService.PREFS_JENKINS_URL, null);
+
+		if (url == null) {
+			MenuItem refresh = menu.findItem(R.id.refresh);
+			MenuItem details = menu.findItem(R.id.details);
+
+			refresh.setVisible(false);
+			details.setVisible(false);
+		}
+
+		return super.onPrepareOptionsMenu(menu);
+	}
+
+	@Override
     public void onOptionsMenuClosed(Menu menu) {
         // Nothing else to do, closing the Activity.
 
