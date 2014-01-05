@@ -28,9 +28,8 @@ public class JenkinsService extends Service {
         }
 
         public void republish() {
-        	mLiveCard.unpublish();
         	initRemoteViews();
-        	initLiveCard();
+        	mLiveCard.setViews(remoteViews);
         }
     }
 
@@ -63,6 +62,15 @@ public class JenkinsService extends Service {
 		}
 
 		jenkins = Jenkins.createJenkins(url);
+		
+		if(jenkins.getSummary() == null) {
+			SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
+			SharedPreferences.Editor editor = settings.edit();
+			editor.remove(JenkinsService.PREFS_JENKINS_URL);
+		    editor.commit();
+
+		    jenkins = null;
+		}
 	}
 
 	private void initLiveCard() {
@@ -80,6 +88,12 @@ public class JenkinsService extends Service {
 	    	remoteViews = new RemoteViews(getPackageName(), R.layout.card_setup_needed);	
 	    } else {
 	    	initJenkins(url);
+
+	    	if(jenkins == null) {
+	    		initRemoteViews();
+	    		return;
+	    	}
+
 	    	StatusSummary summary = jenkins.getSummary();
 
 			remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
@@ -120,8 +134,6 @@ public class JenkinsService extends Service {
 
 			StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 			StrictMode.setThreadPolicy(policy);
-
-			// TODO: Externalize the url
 
 			menuIntent = new Intent(this, MenuActivity.class);
 			initRemoteViews();

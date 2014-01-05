@@ -56,6 +56,10 @@ public class Jenkins implements Serializable {
 	private StatusSummary parseJenkinsFeed(String json) {
 		Gson gson = new Gson();
 		JenkinsResponse jenkinsResponse = gson.fromJson(json, JenkinsResponse.class);
+		
+		if(jenkinsResponse == null) {
+			return null;
+		}
 
 		StatusSummary summary = new StatusSummary();
 		jobs = jenkinsResponse.getJobs();
