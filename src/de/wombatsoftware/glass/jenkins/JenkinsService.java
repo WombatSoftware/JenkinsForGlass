@@ -33,7 +33,6 @@ public class JenkinsService extends Service {
         }
     }
 
-	private static final String JENKINS_API_PATH = "/api/json";
 	private static final String LIVE_CARD_ID = "Jenkins";
 	public static final String PREFS_JENKINS_URL = "de.wombatsoftware.glass.jenkins.url";
 	public static final String PREFS_NAME = "JenkinsPreferences";
@@ -57,19 +56,10 @@ public class JenkinsService extends Service {
 			//throw new Exception
 		}
 
-		if(!url.endsWith(JENKINS_API_PATH) && !url.endsWith(JENKINS_API_PATH + "/")) {
-			url = url + JENKINS_API_PATH + "/";
-		}
-
 		jenkins = Jenkins.createJenkins(url);
 		
 		if(jenkins.getSummary() == null) {
-			SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
-			SharedPreferences.Editor editor = settings.edit();
-			editor.remove(JenkinsService.PREFS_JENKINS_URL);
-		    editor.commit();
-
-		    jenkins = null;
+			deleteJenkinsUrl();
 		}
 	}
 
@@ -87,7 +77,11 @@ public class JenkinsService extends Service {
 	    if(url == null) {
 	    	remoteViews = new RemoteViews(getPackageName(), R.layout.card_setup_needed);	
 	    } else {
-	    	initJenkins(url);
+	    	try {
+	    		initJenkins(url);
+	    	} catch (Exception e) {
+	    		deleteJenkinsUrl();
+	    	}
 
 	    	if(jenkins == null) {
 	    		initRemoteViews();
@@ -149,5 +143,14 @@ public class JenkinsService extends Service {
 
 	protected void setJenkins(Jenkins jenkins) {
 		this.jenkins = jenkins;
+	}
+	
+	private void deleteJenkinsUrl() {
+		SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
+		SharedPreferences.Editor editor = settings.edit();
+		editor.remove(JenkinsService.PREFS_JENKINS_URL);
+	    editor.commit();
+
+	    jenkins = null;
 	}
 }

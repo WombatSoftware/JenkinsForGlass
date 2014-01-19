@@ -1,9 +1,15 @@
 package de.wombatsoftware.glass.jenkins;
 
-import com.google.android.glass.touchpad.GestureDetector;
-import com.google.android.glass.widget.CardScrollView;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
-import de.wombatsoftware.glass.jenkins.model.Jenkins;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -11,14 +17,24 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.MotionEvent;
+
+import com.google.android.glass.touchpad.Gesture;
+import com.google.android.glass.touchpad.GestureDetector;
+import com.google.android.glass.widget.CardScrollView;
+
+import de.wombatsoftware.glass.jenkins.model.Jenkins;
+import de.wombatsoftware.glass.jenkins.model.Jenkins.Credentials;
+import de.wombatsoftware.glass.jenkins.model.Job;
 
 /**
  * Activity to set the timer.
  */
-public class ViewJobDetailsActivity extends Activity implements GestureDetector.ScrollListener {
+public class ViewJobDetailsActivity extends Activity implements GestureDetector.ScrollListener, GestureDetector.BaseListener{
 
     public static final String EXTRA_JENKINS = "jenkins";
+    private static final String TAG = "ViewJobDetailsActivity";
 
     private Jenkins jenkins;
     private JenkinsService.JenkinsBinder jenkinsBinder;
@@ -36,7 +52,7 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
                 mView.setAdapter(mAdapter);
                 setContentView(mView);
 
-                mDetector = new GestureDetector(ViewJobDetailsActivity.this).setScrollListener(ViewJobDetailsActivity.this);
+                mDetector = new GestureDetector(ViewJobDetailsActivity.this).setBaseListener(ViewJobDetailsActivity.this).setScrollListener(ViewJobDetailsActivity.this);
             }
         }
 
@@ -93,5 +109,55 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
 	public boolean onScroll(float displacement, float delta, float velocity) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public boolean onGesture(Gesture gesture) {
+		Log.d(TAG, "Gesture: " + gesture.toString());
+
+		if (gesture == Gesture.TWO_TAP) {
+			Credentials credentials = jenkins.getCredentials();
+			String token = credentials.getToken();
+
+			if (token != null) {
+				Job job = jenkins.getJobs().get(mView.getSelectedItemPosition());
+				HttpClient httpclient = new DefaultHttpClient();
+				String postUrl = job.getUrl() + "/build?token=" + token;
+
+				HttpPost httppost = new HttpPost(postUrl);
+				jenkins.createSecurityHeader(httppost);
+
+				try {
+					HttpResponse response = httpclient.execute(httppost);
+					logHttpResponse(response);
+				} catch (ClientProtocolException e) {
+					Log.e(TAG, "A ClientProtocolException occured", e);
+				} catch (IOException e) {
+					Log.e(TAG, "An IOException occured", e);
+				}
+			}
+			return true;
+		}
+
+        return false;
+	}
+
+	private void logHttpResponse(HttpResponse response) {
+		try {
+			InputStream in = response.getEntity().getContent();
+			InputStreamReader is = new InputStreamReader(in);
+			StringBuilder sb = new StringBuilder();
+			BufferedReader br = new BufferedReader(is);
+			String read = br.readLine();
+	
+			while (read != null) {
+				sb.append(read);
+				read = br.readLine();
+			}
+
+			Log.d(TAG, "Status: " + response.getStatusLine().getStatusCode() + " # Entity: " + sb.toString());
+		} catch(IOException e) {
+			Log.e(TAG, "An IOException occured", e);
+		}
 	}
 }

@@ -16,7 +16,7 @@ import de.wombatsoftware.glass.jenkins.model.Job;
 public class ViewJobDetailsScrollAdapter extends CardScrollAdapter {
 	private Jenkins jenkins;
 	private final Context mContext;
-	
+
 	public ViewJobDetailsScrollAdapter(Context context, Jenkins jenkins) {
         mContext = context;
         this.jenkins = jenkins;
@@ -60,12 +60,12 @@ public class ViewJobDetailsScrollAdapter extends CardScrollAdapter {
             (TextView) convertView.findViewById(R.id.name)
         };
 
-        Job job = jenkins.getJobs().get(position);
-        views[0].setText(job.getName());
+        Job currentJob = jenkins.getJobs().get(position);
+        views[0].setText(currentJob.getName());
         
         int color = R.color.red;
         
-        switch (job.getColor()) {
+        switch (currentJob.getColor()) {
 			case blue:
 				color = R.color.blue;
 				break;
