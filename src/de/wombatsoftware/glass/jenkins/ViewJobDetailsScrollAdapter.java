@@ -6,6 +6,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.glass.widget.CardScrollAdapter;
@@ -56,29 +57,32 @@ public class ViewJobDetailsScrollAdapter extends CardScrollAdapter {
             convertView = LayoutInflater.from(mContext).inflate(R.layout.card_job_details, parent);
         }
 
-        final TextView[] views = new TextView[] {
-            (TextView) convertView.findViewById(R.id.name)
-        };
+		ImageView imageView = (ImageView) convertView.findViewById(R.id.image);
+		TextView textView = (TextView) convertView.findViewById(R.id.name);
 
         Job currentJob = jenkins.getJobs().get(position);
-        views[0].setText(currentJob.getName());
-        
+        textView.setText(currentJob.getName());
+
         int color = R.color.red;
-        
+        int image = R.drawable.red;
+
         switch (currentJob.getColor()) {
 			case blue:
 				color = R.color.blue;
+				image = R.drawable.blue;
 				break;
 	
 			case yellow:
 				color = R.color.yellow;
+				image = R.drawable.yellow;
 				break;
 	
 			default:
 				break;
 		}
-        
-        views[0].setTextColor(mContext.getResources().getColor(color));
+
+        textView.setTextColor(mContext.getResources().getColor(color));
+        imageView.setImageResource(image);
 
         return setItemOnCard(this, convertView);
 	}
