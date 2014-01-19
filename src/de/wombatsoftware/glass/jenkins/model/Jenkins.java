@@ -61,7 +61,7 @@ public class Jenkins implements Serializable {
 	private static final String USER_GROUP = "U:";
 	private static final String TOKEN_GROUP = "T:";
 	private static final String EMPTY_STRING = "";
-	private static final String GROUP_DELIMITER = "";
+	private static final String GROUP_DELIMITER = ";";
 
 	public static Jenkins createJenkins(String url) {
 		return new Jenkins(url);
