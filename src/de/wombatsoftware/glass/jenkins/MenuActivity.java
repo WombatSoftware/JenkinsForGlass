@@ -53,6 +53,7 @@ public class MenuActivity extends Activity {
 			    editor.commit();
 
 				jenkinsBinder.republish();
+				finish();
 			} else if (resultCode == RESULT_CANCELED) {
 				// Handle cancel
 			}
