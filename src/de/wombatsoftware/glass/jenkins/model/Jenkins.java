@@ -156,33 +156,52 @@ public class Jenkins implements Serializable {
 
 	private String readJenkinsFeed() {
 		Log.d("Jenkins", "Read-URL: " + url);
-		StringBuilder builder = new StringBuilder();
 
 		HttpClient client = new DefaultHttpClient();
 		HttpGet httpGet = new HttpGet(url);
-		createSecurityHeader(httpGet);
+		
+		if(credentials.getUser() != null && credentials.getToken() != null) {
+			createSecurityHeader(httpGet);
+		}
+
+		HttpResponse response = null;
 
 		try {
-			HttpResponse response = client.execute(httpGet);
+			response = client.execute(httpGet);
 			StatusLine statusLine = response.getStatusLine();
 			int statusCode = statusLine.getStatusCode();
 
-			if (statusCode == 200) {
-				HttpEntity entity = response.getEntity();
-				InputStream content = entity.getContent();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(content));
-				String line;
-
-				while ((line = reader.readLine()) != null) {
-					builder.append(line);
-				}
-			} else {
-				Log.e(TAG, "Failed to download file");
+			if(statusCode != 200) {
+				Log.e(TAG, "Status:" + statusCode);
+				Log.e(TAG, convertEntityToString(response));
+				return null;
 			}
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			Log.e(TAG, "ClientProtocolException orrured", e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Log.e(TAG, "IOException orrured", e);
+		}
+
+		return convertEntityToString(response);
+	}
+
+	private String convertEntityToString(HttpResponse response) {
+		StringBuilder builder = new StringBuilder();
+		HttpEntity entity = response.getEntity();
+		InputStream content;
+
+		try {
+			content = entity.getContent();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(content));
+			String line;
+
+			while ((line = reader.readLine()) != null) {
+				builder.append(line);
+			}
+		} catch (IllegalStateException e) {
+			Log.e(TAG, "IllegalStateException orrured", e);
+		} catch (IOException e) {
+			Log.e(TAG, "IOException orrured", e);
 		}
 
 		return builder.toString();
