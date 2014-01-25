@@ -11,8 +11,8 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.google.android.glass.timeline.LiveCard;
-import com.google.android.glass.timeline.TimelineManager;
 import com.google.android.glass.timeline.LiveCard.PublishMode;
+import com.google.android.glass.timeline.TimelineManager;
 
 import de.wombatsoftware.glass.jenkins.model.Jenkins;
 import de.wombatsoftware.glass.jenkins.model.StatusSummary;
@@ -26,77 +26,27 @@ public class JenkinsService extends Service {
         public Jenkins getJenkins() {
         	return jenkins;
         }
-
-        public void republish() {
+        
+        public void refreshJenkins() {
+        	JenkinsService.this.initJenkins();
         	initRemoteViews();
         	mLiveCard.setViews(remoteViews);
         }
     }
 
-	private static final String LIVE_CARD_ID = "Jenkins";
 	public static final String PREFS_JENKINS_URL = "de.wombatsoftware.glass.jenkins.url";
 	public static final String PREFS_NAME = "JenkinsPreferences";
-
+	
+	private static final String LIVE_CARD_ID = "Jenkins";
 	private static final String TAG = "JenkinsService";
+
 	private Jenkins jenkins;
 	private final JenkinsBinder mBinder = new JenkinsBinder();
 	private Intent menuIntent;
 	private LiveCard mLiveCard;
-	
 	private TimelineManager mTimelineManager;
-
 	private RemoteViews remoteViews;
 
-	private String formatStatusMessage(int amount, int totalJobs, String name) {
-		return " " + amount + "/" + totalJobs + " " + name;
-	}
-
-	private void initJenkins(String url) {
-		if(url == null) {
-			//throw new Exception
-		}
-
-		jenkins = Jenkins.createJenkins(url);
-		
-		if(jenkins.getSummary() == null) {
-			deleteJenkinsUrl();
-		}
-	}
-
-	private void initLiveCard() {
-		mLiveCard = mTimelineManager.createLiveCard(LIVE_CARD_ID);
-		mLiveCard.setAction(PendingIntent.getActivity(this, 0, menuIntent, 0));
-		mLiveCard.setViews(remoteViews);
-		mLiveCard.publish(PublishMode.REVEAL);
-	}
-
-	private void initRemoteViews() {
-		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-	    String url = settings.getString(PREFS_JENKINS_URL, null);
-
-	    if(url == null) {
-	    	remoteViews = new RemoteViews(getPackageName(), R.layout.card_setup_needed);	
-	    } else {
-	    	try {
-	    		initJenkins(url);
-	    	} catch (Exception e) {
-	    		deleteJenkinsUrl();
-	    	}
-
-	    	if(jenkins == null) {
-	    		initRemoteViews();
-	    		return;
-	    	}
-
-	    	StatusSummary summary = jenkins.getSummary();
-
-			remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
-			remoteViews.setTextViewText(R.id.success, formatStatusMessage(summary.getStableJobs(), summary.getTotalJobs(), "Stable"));
-			remoteViews.setTextViewText(R.id.unstable, formatStatusMessage(summary.getUnstableJobs(), summary.getTotalJobs(), "Unstable"));
-			remoteViews.setTextViewText(R.id.failed, formatStatusMessage(summary.getFailedJobs(), summary.getTotalJobs(), "Failed"));
-	    }
-	}
-	
 	@Override
     public IBinder onBind(Intent intent) {
         return mBinder;
@@ -130,6 +80,8 @@ public class JenkinsService extends Service {
 			StrictMode.setThreadPolicy(policy);
 
 			menuIntent = new Intent(this, MenuActivity.class);
+
+			initJenkins();
 			initRemoteViews();
 			initLiveCard();
 
@@ -141,10 +93,6 @@ public class JenkinsService extends Service {
 		return START_STICKY;
 	}
 
-	protected void setJenkins(Jenkins jenkins) {
-		this.jenkins = jenkins;
-	}
-	
 	private void deleteJenkinsUrl() {
 		SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
 		SharedPreferences.Editor editor = settings.edit();
@@ -152,5 +100,48 @@ public class JenkinsService extends Service {
 	    editor.commit();
 
 	    jenkins = null;
+	}
+	
+	private String formatStatusMessage(int amount, int totalJobs, String name) {
+		return " " + amount + "/" + totalJobs + " " + name;
+	}
+
+	private void initJenkins() {
+		SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+		String url = settings.getString(PREFS_JENKINS_URL, null);
+
+		if(url == null) {
+			jenkins = null;
+		} else {
+			initJenkins(url);
+		}
+	}
+
+	private void initJenkins(String qrContent) {
+		jenkins = Jenkins.createJenkins(qrContent);
+
+		if(jenkins.getSummary() == null) {
+			deleteJenkinsUrl();
+		}
+	}
+
+	private void initLiveCard() {
+		mLiveCard = mTimelineManager.createLiveCard(LIVE_CARD_ID);
+		mLiveCard.setAction(PendingIntent.getActivity(this, 0, menuIntent, 0));
+		mLiveCard.setViews(remoteViews);
+		mLiveCard.publish(PublishMode.REVEAL);
+	}
+
+	private void initRemoteViews() {
+	    if(jenkins == null) {
+	    	remoteViews = new RemoteViews(getPackageName(), R.layout.card_setup_needed);	
+	    } else {
+	    	StatusSummary summary = jenkins.getSummary();
+
+			remoteViews = new RemoteViews(getPackageName(), R.layout.card_jenkins);
+			remoteViews.setTextViewText(R.id.success, formatStatusMessage(summary.getStableJobs(), summary.getTotalJobs(), "Stable"));
+			remoteViews.setTextViewText(R.id.unstable, formatStatusMessage(summary.getUnstableJobs(), summary.getTotalJobs(), "Unstable"));
+			remoteViews.setTextViewText(R.id.failed, formatStatusMessage(summary.getFailedJobs(), summary.getTotalJobs(), "Failed"));
+	    }
 	}
 }

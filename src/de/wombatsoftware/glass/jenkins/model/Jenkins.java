@@ -53,19 +53,20 @@ public class Jenkins implements Serializable {
 		}
 	}
 
-	private static final long serialVersionUID = -4032951634201406937L;
+	private static final String EMPTY_STRING = "";
 
-	private static final String TAG = "Jenkins";
+	private static final String GROUP_DELIMITER = ";";
 	private static final String JENKINS_API_PATH = "/api/json";
 	private static final String JENKINS_GROUP = "Jenkins:";
-	private static final String USER_GROUP = "U:";
+	private static final long serialVersionUID = -4032951634201406937L;
+	private static final String TAG = "Jenkins";
 	private static final String TOKEN_GROUP = "T:";
-	private static final String EMPTY_STRING = "";
-	private static final String GROUP_DELIMITER = ";";
+	private static final String USER_GROUP = "U:";
 
 	public static Jenkins createJenkins(String url) {
 		return new Jenkins(url);
 	}
+
 	private Credentials credentials = new Credentials();
 	private List<Job> jobs;
 
@@ -75,6 +76,58 @@ public class Jenkins implements Serializable {
 
 	private Jenkins(String qrContent) {
 		init(qrContent);
+	}
+
+	public void createSecurityHeader(HttpRequestBase base) {
+		String auth = credentials.getUser() + ":" + credentials.getToken();
+		String base64EncodedCredentials = Base64.encodeToString(auth.getBytes(), Base64.NO_WRAP);
+		base.addHeader("Authorization", "Basic " + base64EncodedCredentials);
+	}
+
+	public Credentials getCredentials() {
+		return credentials;
+	}
+
+	public List<Job> getJobs() {
+		return jobs;
+	}
+
+	public StatusSummary getSummary() {
+		return summary;
+	}
+
+	public void init() {
+		Log.d(TAG, "Init Jenkins");
+		summary = parseJenkinsFeed(readJenkinsFeed());
+	}
+	
+	public void init(String qrContent) {
+		Log.d(TAG, "Init Jenkins with QR-Content");
+
+		extractToken(qrContent);
+		init();
+	}
+
+	private String convertEntityToString(HttpResponse response) {
+		StringBuilder builder = new StringBuilder();
+		HttpEntity entity = response.getEntity();
+		InputStream content;
+
+		try {
+			content = entity.getContent();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(content));
+			String line;
+
+			while ((line = reader.readLine()) != null) {
+				builder.append(line);
+			}
+		} catch (IllegalStateException e) {
+			Log.e(TAG, "IllegalStateException orrured", e);
+		} catch (IOException e) {
+			Log.e(TAG, "IOException orrured", e);
+		}
+
+		return builder.toString();
 	}
 
 	private void extractToken(String qrContent) {
@@ -95,29 +148,6 @@ public class Jenkins implements Serializable {
 				this.credentials.setToken(group.replaceAll(TOKEN_GROUP, EMPTY_STRING));
 			}
 		}
-	}
-
-	public Credentials getCredentials() {
-		return credentials;
-	}
-
-	public List<Job> getJobs() {
-		return jobs;
-	}
-
-	public StatusSummary getSummary() {
-		return summary;
-	}
-
-	public void init(String qrContent) {
-		Log.d(TAG, "Init Jenkins with QR-Content");
-
-		extractToken(qrContent);
-		init();
-	}
-	
-	public void init() {
-		summary = parseJenkinsFeed(readJenkinsFeed());
 	}
 
 	private StatusSummary parseJenkinsFeed(String json) {
@@ -183,33 +213,5 @@ public class Jenkins implements Serializable {
 		}
 
 		return convertEntityToString(response);
-	}
-
-	private String convertEntityToString(HttpResponse response) {
-		StringBuilder builder = new StringBuilder();
-		HttpEntity entity = response.getEntity();
-		InputStream content;
-
-		try {
-			content = entity.getContent();
-			BufferedReader reader = new BufferedReader(new InputStreamReader(content));
-			String line;
-
-			while ((line = reader.readLine()) != null) {
-				builder.append(line);
-			}
-		} catch (IllegalStateException e) {
-			Log.e(TAG, "IllegalStateException orrured", e);
-		} catch (IOException e) {
-			Log.e(TAG, "IOException orrured", e);
-		}
-
-		return builder.toString();
-	}
-
-	public void createSecurityHeader(HttpRequestBase base) {
-		String auth = credentials.getUser() + ":" + credentials.getToken();
-		String base64EncodedCredentials = Base64.encodeToString(auth.getBytes(), Base64.NO_WRAP);
-		base.addHeader("Authorization", "Basic " + base64EncodedCredentials);
 	}
 }

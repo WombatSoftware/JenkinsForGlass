@@ -75,46 +75,11 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        getApplicationContext().bindService(new Intent(this, JenkinsService.class), mConnection, 0);
-        
-        mView = new CardScrollView(ViewJobDetailsActivity.this) {
-            @Override
-            public final boolean dispatchGenericFocusedEvent(MotionEvent event) {
-                if (mDetector.onMotionEvent(event)) {
-                    return true;
-                }
-
-                return super.dispatchGenericFocusedEvent(event);
-            }
-        };
-    }
-
-    @Override
     public boolean onGenericMotionEvent(MotionEvent event) {
         return mDetector.onMotionEvent(event);
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
-        mView.deactivate();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mView.activate();
-    }
-
-	@Override
-	public boolean onScroll(float displacement, float delta, float velocity) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
 	public boolean onGesture(Gesture gesture) {
 		Log.d(TAG, "Gesture: " + gesture.toString());
 
@@ -149,6 +114,24 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
         return false;
 	}
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        mView.deactivate();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mView.activate();
+    }
+
+	@Override
+	public boolean onScroll(float displacement, float delta, float velocity) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 	private void logHttpResponse(HttpResponse response) {
 		try {
 			InputStream in = response.getEntity().getContent();
@@ -167,4 +150,21 @@ public class ViewJobDetailsActivity extends Activity implements GestureDetector.
 			Log.e(TAG, "An IOException occured", e);
 		}
 	}
+
+	@Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getApplicationContext().bindService(new Intent(this, JenkinsService.class), mConnection, 0);
+        
+        mView = new CardScrollView(ViewJobDetailsActivity.this) {
+            @Override
+            public final boolean dispatchGenericFocusedEvent(MotionEvent event) {
+                if (mDetector.onMotionEvent(event)) {
+                    return true;
+                }
+
+                return super.dispatchGenericFocusedEvent(event);
+            }
+        };
+    }
 }

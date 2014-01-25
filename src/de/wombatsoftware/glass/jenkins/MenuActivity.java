@@ -52,18 +52,12 @@ public class MenuActivity extends Activity {
 			    editor.putString(JenkinsService.PREFS_JENKINS_URL, contents);
 			    editor.commit();
 
-				jenkinsBinder.republish();
+				jenkinsBinder.refreshJenkins();
 				finish();
 			} else if (resultCode == RESULT_CANCELED) {
 				// Handle cancel
 			}
 		}
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        getApplicationContext().bindService(new Intent(this, JenkinsService.class), mConnection, 0);
     }
 
     @Override
@@ -79,7 +73,8 @@ public class MenuActivity extends Activity {
         // Handle item selection.
         switch (item.getItemId()) {
         	case R.id.refresh:
-        		refreshJenkins();
+        		jenkinsBinder.refreshJenkins();
+
         		return true;
 
         	case R.id.details:
@@ -97,6 +92,15 @@ public class MenuActivity extends Activity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onOptionsMenuClosed(Menu menu) {
+        // Nothing else to do, closing the Activity.
+
+    	if(!scanStarted) {
+    		finish();
+    	}
     }
     
     @Override
@@ -116,42 +120,34 @@ public class MenuActivity extends Activity {
 	}
 
 	@Override
-    public void onOptionsMenuClosed(Menu menu) {
-        // Nothing else to do, closing the Activity.
-
-    	if(!scanStarted) {
-    		finish();
-    	}
-    }
-
-    @Override
     public void onResume() {
         super.onResume();
         openOptionsMenu();
     }
 
-    @Override
-	protected void onStop() {
-		super.onStop();
-		// TODO: Must it get unbound? 
-		// unbindService(mConnection);
-	}
-
-	private void refreshJenkins() {
-    	jenkins.init();
-    	jenkinsBinder.republish();
-    }
-
-	private void setupJenkins() {
+    private void setupJenkins() {
     	Intent intent = new Intent("com.google.zxing.client.android.SCAN");
         intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
         startActivityForResult(intent, 0);
         scanStarted = true;
     }
 
-	private void showJobDetails() {
+    private void showJobDetails() {
         Intent viewJobDetailsIntent = new Intent(this, ViewJobDetailsActivity.class);
         viewJobDetailsIntent.putExtra(ViewJobDetailsActivity.EXTRA_JENKINS, jenkins);
         startActivityForResult(viewJobDetailsIntent, VIEW_DETAILS);
     }
+
+	@Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getApplicationContext().bindService(new Intent(this, JenkinsService.class), mConnection, 0);
+    }
+
+	@Override
+	protected void onStop() {
+		super.onStop();
+		// TODO: Must it get unbound? 
+		// unbindService(mConnection);
+	}
 }
