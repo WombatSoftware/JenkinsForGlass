@@ -1,15 +1,20 @@
 package de.wombatsoftware.glass.jenkins;
 
+import java.util.Timer;
+
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 import android.widget.RemoteViews;
 
+import com.google.android.glass.media.Sounds;
 import com.google.android.glass.timeline.LiveCard;
 import com.google.android.glass.timeline.LiveCard.PublishMode;
 import com.google.android.glass.timeline.TimelineManager;
@@ -21,16 +26,13 @@ import de.wombatsoftware.glass.jenkins.model.StatusSummary;
  * Service owning the LiveCard living in the timeline.
  */
 public class JenkinsService extends Service {
-
 	public class JenkinsBinder extends Binder {
         public Jenkins getJenkins() {
         	return jenkins;
         }
-        
+
         public void refreshJenkins() {
-        	JenkinsService.this.initJenkins();
-        	initRemoteViews();
-        	mLiveCard.setViews(remoteViews);
+        	JenkinsService.this.refreshJenkins();
         }
     }
 
@@ -39,13 +41,20 @@ public class JenkinsService extends Service {
 	
 	private static final String LIVE_CARD_ID = "Jenkins";
 	private static final String TAG = "JenkinsService";
+	private static final long timerTimeout = 1000 * 60 * 30;
 
 	private Jenkins jenkins;
 	private final JenkinsBinder mBinder = new JenkinsBinder();
 	private Intent menuIntent;
 	private LiveCard mLiveCard;
 	private TimelineManager mTimelineManager;
+	private RefreshTask refreshTask;
 	private RemoteViews remoteViews;
+	private Timer timer;
+	
+	public Jenkins getJenkins() {
+		return jenkins;
+	}
 
 	@Override
     public IBinder onBind(Intent intent) {
@@ -64,6 +73,7 @@ public class JenkinsService extends Service {
 		if (mLiveCard != null && mLiveCard.isPublished()) {
 			Log.d(TAG, "Unpublishing LiveCard");
 
+			timer.cancel();
 			mLiveCard.unpublish();
 			mLiveCard = null;
 		}
@@ -84,6 +94,7 @@ public class JenkinsService extends Service {
 			initJenkins();
 			initRemoteViews();
 			initLiveCard();
+			initRefreshTimer();
 
 			Log.d(TAG, "Done publishing LiveCard");
 		} else {
@@ -92,6 +103,30 @@ public class JenkinsService extends Service {
 
 		return START_STICKY;
 	}
+
+	public void refreshJenkins() {
+		StatusSummary summary = jenkins.getSummary();
+
+		int failedJobsBefore = summary.getFailedJobs();
+		int unstableJobsBefore = summary.getUnstableJobs();
+		int stableJobsBefore = summary.getStableJobs();
+
+		initJenkins();
+    	initRemoteViews();
+    	mLiveCard.setViews(remoteViews);
+
+    	summary = jenkins.getSummary();
+
+		int failedJobsAfter = summary.getFailedJobs();
+		int unstableJobsAfter = summary.getUnstableJobs();
+		int stableJobsAfter = summary.getStableJobs();
+
+		if(failedJobsAfter > failedJobsBefore || unstableJobsAfter > unstableJobsBefore) {
+			playSound(Sounds.ERROR);
+		} else if (stableJobsAfter > stableJobsBefore) {
+			playSound(Sounds.SUCCESS);
+		}
+    }
 
 	private void deleteJenkinsUrl() {
 		SharedPreferences settings = getSharedPreferences(JenkinsService.PREFS_NAME, 0);
@@ -132,6 +167,12 @@ public class JenkinsService extends Service {
 		mLiveCard.publish(PublishMode.REVEAL);
 	}
 
+	private void initRefreshTimer() {
+		refreshTask = new RefreshTask(this);
+		timer = new Timer();
+		timer.scheduleAtFixedRate(refreshTask, timerTimeout, timerTimeout);
+	}
+
 	private void initRemoteViews() {
 	    if(jenkins == null) {
 	    	remoteViews = new RemoteViews(getPackageName(), R.layout.card_setup_needed);	
@@ -143,5 +184,10 @@ public class JenkinsService extends Service {
 			remoteViews.setTextViewText(R.id.unstable, formatStatusMessage(summary.getUnstableJobs(), summary.getTotalJobs(), "Unstable"));
 			remoteViews.setTextViewText(R.id.failed, formatStatusMessage(summary.getFailedJobs(), summary.getTotalJobs(), "Failed"));
 	    }
+	}
+	
+	private void playSound(int sound) {
+		AudioManager audio = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+		audio.playSoundEffect(sound);
 	}
 }
